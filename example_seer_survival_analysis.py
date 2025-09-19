@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Import survival analysis modules
-from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data
+from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data, load_seer_data
 from src.models.deep_survival import get_model_class
 from src.utils.trainer import SurvivalTrainer, train_multiple_models
 from src.utils.visualization import SurvivalVisualizer, create_survival_dashboard
@@ -28,14 +28,34 @@ def main():
     # Set random seed for reproducibility
     np.random.seed(42)
 
-    # Step 1: Generate or Load SEER Data
-    print("Step 1: Loading SEER Data")
+    # Step 1: Load Real SEER Data
+    print("Step 1: Loading Real SEER Data")
     print("-" * 40)
 
-    # For demonstration, we'll create sample SEER-like data
-    # In practice, you would load your actual SEER dataset:
-    # df = pd.read_csv('path/to/seer_data.csv')
-    df = create_sample_seer_data(n_samples=2000, random_state=42)
+    # Try to load real SEER data first, fallback to synthetic if not available
+    real_data_paths = [
+        'data/seer_processed.csv',
+        'data/SEER_breast_cancer.csv',
+        'data/seer_breast_cancer.csv'
+    ]
+
+    df = None
+    for path in real_data_paths:
+        if Path(path).exists():
+            try:
+                print(f"Loading real SEER data from: {path}")
+                df = load_seer_data(path)
+                print("✓ Successfully loaded real SEER data")
+                break
+            except Exception as e:
+                print(f"✗ Error loading {path}: {e}")
+                continue
+
+    # Fallback to synthetic data if real data not available
+    if df is None:
+        print("⚠ Real SEER data not found, using synthetic data")
+        print("To use real data, run: python extract_seer_data.py")
+        df = create_sample_seer_data(n_samples=2000, random_state=42)
 
     print(f"Dataset shape: {df.shape}")
     print(f"Event rate: {df['vital_status'].mean():.3f}")

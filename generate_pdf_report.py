@@ -29,7 +29,7 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.charts.linecharts import HorizontalLineChart
 
 # Import survival analysis modules
-from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data
+from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data, load_seer_data
 from src.utils.trainer import SurvivalTrainer
 from src.evaluation.metrics import compute_all_metrics
 
@@ -437,9 +437,33 @@ def main():
     print("=== Generating PDF Survival Analysis Report ===")
     print()
 
-    # Step 1: Create sample data
-    print("Step 1: Creating sample SEER data...")
-    df = create_sample_seer_data(n_samples=1000, random_state=42)
+    # Step 1: Load real SEER data
+    print("Step 1: Loading SEER data...")
+
+    # Try to load real SEER data first, fallback to synthetic if not available
+    real_data_paths = [
+        'data/seer_processed.csv',
+        'data/SEER_breast_cancer.csv',
+        'data/seer_breast_cancer.csv'
+    ]
+
+    df = None
+    for path in real_data_paths:
+        if Path(path).exists():
+            try:
+                print(f"Loading real SEER data from: {path}")
+                df = load_seer_data(path)
+                print("✓ Successfully loaded real SEER data")
+                break
+            except Exception as e:
+                print(f"✗ Error loading {path}: {e}")
+                continue
+
+    # Fallback to synthetic data if real data not available
+    if df is None:
+        print("⚠ Real SEER data not found, using synthetic data")
+        print("To use real data, run: python extract_seer_data.py")
+        df = create_sample_seer_data(n_samples=1000, random_state=42)
 
     dataset_info = {
         'n_samples': len(df),
