@@ -19,6 +19,7 @@ warnings.filterwarnings('ignore')
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from data.survival_preprocessor import SurvivalDataPreprocessor, load_survival_data
+from analysis import prepare_cox_data
 
 def install_lifelines():
     """Install lifelines library for survival analysis."""
@@ -77,7 +78,7 @@ def basic_survival_analysis(df):
     # Data overview
     print(f"Dataset: {len(df)} patients")
     print(f"Event rate: {df['vital_status'].mean():.3f}")
-    print(f"Median follow-up: {df['survival_months'].median():.1f} months")
+    print(f"Median observed time: {df['survival_months'].median():.1f} months")
 
     # Kaplan-Meier analysis
     print("\n--- Kaplan-Meier Survival Analysis ---")
@@ -157,26 +158,10 @@ def basic_survival_analysis(df):
     # Cox Proportional Hazards Model
     print("\n--- Cox Proportional Hazards Model ---")
 
-    # Prepare data for Cox model
-    cox_data = df.copy()
-
-    # Create dummy variables for categorical variables
-    categorical_cols = ['primary_site', 'stage', 'grade', 'race', 'sex']
-
-    for col in categorical_cols:
-        if col in cox_data.columns:
-            dummies = pd.get_dummies(cox_data[col], prefix=col, drop_first=True)
-            cox_data = pd.concat([cox_data, dummies], axis=1)
-
-    # Select numerical and dummy variables for Cox model
-    cox_features = ['age_at_diagnosis', 'tumor_size', 'nodes_positive', 'nodes_examined']
-
-    # Add dummy variables
-    dummy_cols = [col for col in cox_data.columns if any(cat in col for cat in categorical_cols) and col not in categorical_cols]
-    cox_features.extend(dummy_cols)
-
-    # Remove missing values
-    cox_analysis_data = cox_data[cox_features + ['survival_months', 'vital_status']].dropna()
+    # Prepare data for Cox model: dummy-coded categoricals, imputed tumor size
+    cox_analysis_data = prepare_cox_data(df)
+    cox_features = [col for col in cox_analysis_data.columns
+                    if col not in ('survival_months', 'vital_status')]
 
     if len(cox_analysis_data) > 100:
         cph = CoxPHFitter()
@@ -202,7 +187,7 @@ def basic_survival_analysis(df):
 
         # Residuals plot
         residuals = cph.compute_residuals(cox_analysis_data, kind='deviance')
-        plt.scatter(cox_analysis_data['survival_months'], residuals.values.flatten(), alpha=0.6)
+        plt.scatter(residuals['survival_months'], residuals['deviance'], alpha=0.6)
         plt.xlabel('Survival Time (months)')
         plt.ylabel('Deviance Residuals')
         plt.title('Model Residuals')

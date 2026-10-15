@@ -2,108 +2,114 @@
 Generate Final Survival Analysis Report
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
+import sys
 import os
+import pandas as pd
+
+# Add the src directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from analysis import compute_survival_summary, format_months, describe_c_index
+
+
+def _significant_factors(hazard_ratios: pd.DataFrame, alpha: float = 0.05) -> pd.DataFrame:
+    return hazard_ratios[hazard_ratios['p'] < alpha].sort_values('hr', ascending=False)
+
 
 def generate_comprehensive_report():
     """Generate comprehensive survival analysis report."""
 
     # Load the synthetic data
     df = pd.read_csv("data/synthetic_survival_sample.csv")
+    results = compute_survival_summary(df)
+    site_counts = results['site_counts']
+    stage_counts = results['stage_counts']
+    significant = _significant_factors(results['hazard_ratios'])
+    c_index = results['c_index_test']
 
     print("=== COMPREHENSIVE SURVIVAL ANALYSIS REPORT ===\n")
 
     # Basic Statistics
     print("DATASET OVERVIEW")
     print("=" * 50)
-    print(f"Total Patients: {len(df):,}")
-    print(f"Deaths (Events): {df['vital_status'].sum():,} ({df['vital_status'].mean():.1%})")
-    print(f"Median Follow-up: {df['survival_months'].median():.1f} months")
-    print(f"Age Range: {df['age_at_diagnosis'].min():.0f} - {df['age_at_diagnosis'].max():.0f} years")
-    print(f"Mean Age: {df['age_at_diagnosis'].mean():.1f} years")
+    print(f"Total Patients: {results['n_patients']:,}")
+    print(f"Deaths (Events): {results['n_events']:,} ({results['event_rate']:.1%})")
+    print(f"Median Follow-up: {results['median_follow_up']:.0f} months (reverse Kaplan-Meier)")
+    print(f"Age Range: {results['age_min']} - {results['age_max']} years")
+    print(f"Mean Age: {results['age_mean']:.1f} years")
 
     # Cancer Sites
     print(f"\nCANCER SITES DISTRIBUTION")
     print("=" * 50)
-    site_counts = df['primary_site'].value_counts()
     for site, count in site_counts.items():
         print(f"{site}: {count:,} patients ({count/len(df):.1%})")
 
     # Stage Distribution
     print(f"\nSTAGE DISTRIBUTION")
     print("=" * 50)
-    stage_counts = df['stage'].value_counts()
     for stage, count in stage_counts.items():
         print(f"Stage {stage}: {count:,} patients ({count/len(df):.1%})")
 
-    # Survival by Stage (from our previous analysis)
+    # Survival by Stage
     print(f"\nSURVIVAL BY STAGE")
     print("=" * 50)
-    stage_survival = {
-        'I': {'patients': 241, 'median_survival': 'Not reached (>240 months)'},
-        'II': {'patients': 263, 'median_survival': '240.0 months'},
-        'III': {'patients': 240, 'median_survival': '96.4 months'},
-        'IV': {'patients': 198, 'median_survival': '63.8 months'},
-        'Unknown': {'patients': 58, 'median_survival': '109.2 months'}
-    }
+    for stage, data in results['by_stage'].items():
+        print(f"Stage {stage}: {data['patients']} patients, median survival: "
+              f"{format_months(data['median_survival'])}, 5-year survival: {data['survival_5yr']:.1%}")
 
-    for stage, data in stage_survival.items():
-        print(f"Stage {stage}: {data['patients']} patients, median survival: {data['median_survival']}")
+    # Survival by Site
+    print(f"\nSURVIVAL BY PRIMARY SITE")
+    print("=" * 50)
+    for site, data in results['by_site'].items():
+        print(f"{site}: {data['patients']} patients, median survival: "
+              f"{format_months(data['median_survival'])}, 5-year survival: {data['survival_5yr']:.1%}")
 
     # Age Group Analysis
     print(f"\nSURVIVAL BY AGE GROUP")
     print("=" * 50)
-    age_survival = {
-        '<50': {'patients': 163, 'median_survival': 'Not reached'},
-        '50-64': {'patients': 354, 'median_survival': '212.1 months'},
-        '65-79': {'patients': 344, 'median_survival': '233.9 months'},
-        '80+': {'patients': 139, 'median_survival': '96.4 months'}
-    }
-
-    for age_group, data in age_survival.items():
-        print(f"Age {age_group}: {data['patients']} patients, median survival: {data['median_survival']}")
+    for age_group, data in results['by_age_group'].items():
+        print(f"Age {age_group}: {data['patients']} patients, median survival: "
+              f"{format_months(data['median_survival'])}, 5-year survival: {data['survival_5yr']:.1%}")
 
     # Cox Model Results
     print(f"\nCOX PROPORTIONAL HAZARDS MODEL")
     print("=" * 50)
-    print("Concordance Index (C-index): 0.699 (Good predictive performance)")
+    print(f"Concordance Index (C-index, 30% test split): {c_index:.3f} "
+          f"({describe_c_index(c_index).capitalize()} predictive performance)")
     print("\nSignificant Risk Factors (p < 0.05):")
-    print("• Age at diagnosis: HR = 1.017 (older age increases risk)")
-    print("• Positive lymph nodes: HR = 1.256 (more nodes increase risk)")
-    print("• Nodes examined: HR = 0.945 (more examination decreases risk)")
-    print("• Stage II vs I: HR = 1.668")
-    print("• Stage III vs I: HR = 4.076")
-    print("• Stage IV vs I: HR = 5.117")
-    print("• Unknown stage vs I: HR = 2.634")
+    for name, row in significant.iterrows():
+        print(f"• {name}: HR = {row['hr']:.2f} (95% CI {row['hr_lower']:.2f}-{row['hr_upper']:.2f})")
 
     # Key Findings
+    by_stage = results['by_stage']
+    by_site = results['by_site']
+    best_site = max(by_site, key=lambda s: by_site[s]['survival_5yr'])
+    worst_site = min(by_site, key=lambda s: by_site[s]['survival_5yr'])
     print(f"\nKEY FINDINGS")
     print("=" * 50)
-    print("1. **Stage is the strongest predictor**: Clear survival hierarchy (I > II > III > IV)")
-    print("2. **Age effect**: Older patients have worse outcomes")
-    print("3. **Lymph node involvement**: Strong prognostic factor")
-    print("4. **Overall survival**: 78.2% of patients alive at last follow-up")
-    print("5. **Model performance**: C-index of 0.699 indicates good discrimination")
+    print(f"1. **Stage is the strongest predictor**: 5-year survival falls from "
+          f"{by_stage['I']['survival_5yr']:.0%} (stage I) to {by_stage['IV']['survival_5yr']:.0%} (stage IV)")
+    print(f"2. **Primary site matters**: 5-year survival ranges from {by_site[worst_site]['survival_5yr']:.0%} "
+          f"({worst_site}) to {by_site[best_site]['survival_5yr']:.0%} ({best_site})")
+    print("3. **Age effect**: Older patients have worse outcomes")
+    print(f"4. **Overall survival**: {1 - results['event_rate']:.1%} of patients alive at last follow-up")
+    print(f"5. **Model performance**: C-index of {c_index:.3f} indicates {describe_c_index(c_index)} discrimination")
 
     # Data Quality Assessment
     print(f"\nDATA QUALITY ASSESSMENT")
     print("=" * 50)
-    print("• Complete data: No missing values in key variables")
-    print("• Balanced representation: Good distribution across cancer stages")
-    print("• Adequate follow-up: Sufficient time for survival analysis")
-    print("• Sample size: 1,000 patients provides statistical power")
-    print("• Realistic patterns: Synthetic data mirrors realistic cancer registry characteristics")
+    print(f"• Missing values: tumor size unknown for {df['tumor_size_mm'].isna().mean():.0%} of patients "
+          "(imputed with the median in the Cox model)")
+    print("• Site-specific case mix: sex, age, stage and treatment follow published cancer statistics")
+    print("• Follow-up: diagnoses 2010-2020, administratively censored at December 2021")
+    print(f"• Sample size: {results['n_patients']:,} patients")
 
     # Clinical Implications
     print(f"\nCLINICAL IMPLICATIONS")
     print("=" * 50)
-    print("• Early detection crucial: Stage I patients have excellent prognosis")
+    print("• Early detection crucial: Localized disease has excellent prognosis")
     print("• Risk stratification: Model can identify high-risk patients")
-    print("• Treatment planning: Age and stage should guide therapy decisions")
+    print("• Treatment planning: Site, stage and grade should guide therapy decisions")
     print("• Follow-up strategies: More intensive monitoring for advanced stages")
 
     # Create a summary statistics table
@@ -118,35 +124,52 @@ def generate_comprehensive_report():
             'Stage II Patients',
             'Stage III Patients',
             'Stage IV Patients',
-            'C-index'
+            '5-year Overall Survival',
+            'C-index (test set)'
         ],
         'Value': [
-            f"{len(df):,}",
-            f"{df['vital_status'].sum():,}",
-            f"{df['vital_status'].mean():.1%}",
-            f"{df['survival_months'].median():.1f}",
-            f"{df['age_at_diagnosis'].mean():.1f}",
+            f"{results['n_patients']:,}",
+            f"{results['n_events']:,}",
+            f"{results['event_rate']:.1%}",
+            f"{results['median_follow_up']:.0f}",
+            f"{results['age_mean']:.1f}",
             f"{stage_counts.get('I', 0)} ({stage_counts.get('I', 0)/len(df):.1%})",
             f"{stage_counts.get('II', 0)} ({stage_counts.get('II', 0)/len(df):.1%})",
             f"{stage_counts.get('III', 0)} ({stage_counts.get('III', 0)/len(df):.1%})",
             f"{stage_counts.get('IV', 0)} ({stage_counts.get('IV', 0)/len(df):.1%})",
-            "0.699"
+            f"{results['overall']['survival_5yr']:.1%}",
+            f"{c_index:.3f}"
         ]
     })
 
     # Save detailed report
     os.makedirs("reports", exist_ok=True)
 
+    def survival_lines(groups, prefix=''):
+        return chr(10).join(
+            f"  - {prefix}{name}: median {format_months(d['median_survival'])}, "
+            f"5-year survival {d['survival_5yr']:.1%} (n={d['patients']})"
+            for name, d in groups.items())
+
+    def format_p(p):
+        return 'p < 0.001' if p < 0.001 else f"p = {p:.3f}"
+
+    hr_lines = chr(10).join(
+        f"  - {name} (HR: {row['hr']:.2f}, 95% CI {row['hr_lower']:.2f}-{row['hr_upper']:.2f}, "
+        f"{format_p(row['p'])})"
+        for name, row in significant.iterrows())
+
     report_content = f"""# Comprehensive Survival Analysis Report
 
 ## Executive Summary
-This analysis used synthetic survival data (n=1,000) to demonstrate survival analysis methodologies and validate model performance. The results show realistic cancer survival patterns consistent with clinical expectations.
+This analysis used a synthetic cancer survival cohort (n={results['n_patients']:,}) to demonstrate survival analysis methodologies and validate model performance. The cohort's case mix and stage-specific survival are calibrated to published US cancer statistics for six primary sites.
 
 ## Dataset Overview
-- **Total Patients**: {len(df):,}
-- **Events (Deaths)**: {df['vital_status'].sum():,} ({df['vital_status'].mean():.1%})
-- **Median Follow-up**: {df['survival_months'].median():.1f} months
-- **Age Range**: {df['age_at_diagnosis'].min():.0f} - {df['age_at_diagnosis'].max():.0f} years
+- **Total Patients**: {results['n_patients']:,}
+- **Events (Deaths)**: {results['n_events']:,} ({results['event_rate']:.1%})
+- **Median Follow-up**: {results['median_follow_up']:.0f} months (reverse Kaplan-Meier)
+- **Age Range**: {results['age_min']} - {results['age_max']} years (median {results['age_median']:.0f})
+- **Diagnosis Years**: {df['year_of_diagnosis'].min()} - {df['year_of_diagnosis'].max()}, follow-up through December 2021
 
 ## Cancer Distribution
 ### Primary Sites
@@ -158,35 +181,31 @@ This analysis used synthetic survival data (n=1,000) to demonstrate survival ana
 ## Survival Analysis Results
 
 ### Kaplan-Meier Analysis
-- **Overall median survival**: 233.9 months
+- **Overall**: median {format_months(results['overall']['median_survival'])}, 5-year survival {results['overall']['survival_5yr']:.1%}
 - **Stage-specific survival**:
-  - Stage I: Not reached (excellent prognosis)
-  - Stage II: 240.0 months
-  - Stage III: 96.4 months
-  - Stage IV: 63.8 months
-  - Unknown: 109.2 months
+{survival_lines(results['by_stage'], 'Stage ')}
+- **Site-specific survival**:
+{survival_lines(results['by_site'])}
 
 ### Cox Proportional Hazards Model
-- **C-index**: 0.699 (good discrimination)
-- **Significant predictors**:
-  - Age (HR: 1.017, p < 0.001)
-  - Positive lymph nodes (HR: 1.256, p < 0.001)
-  - Cancer stage (highly significant)
+- **C-index**: {c_index:.3f} on a 30% held-out test set ({describe_c_index(c_index)} discrimination)
+- **Significant predictors** (p < 0.05; references: stage I, breast, well differentiated, female, White, no surgery/radiation/chemotherapy):
+{hr_lines}
 
 ## Key Findings
-1. **Stage hierarchy**: Clear survival advantage for earlier stages
-2. **Age effect**: Increased mortality risk with advancing age
-3. **Lymph node status**: Important prognostic factor
-4. **Model performance**: Good predictive capability
+1. **Stage hierarchy**: 5-year survival falls from {by_stage['I']['survival_5yr']:.0%} (stage I) to {by_stage['IV']['survival_5yr']:.0%} (stage IV)
+2. **Site differences**: {worst_site} has the poorest prognosis and {best_site} the best
+3. **Age effect**: Increased mortality risk with advancing age
+4. **Grade and treatment**: Poorly differentiated and undifferentiated tumors carry higher risk; surgery is associated with lower risk
+5. **Model performance**: {describe_c_index(c_index).capitalize()} predictive capability
 
-## Validation
-- Model C-index of 0.699 indicates good discrimination
-- Results consistent with clinical expectations
-- No major violations of proportional hazards assumption
+## Notes
+- Deaths are from any cause, so survival is lower than cancer-specific (relative) survival, especially for older patients
+- Treatment effects are observational associations, not causal estimates
 
 ## Conclusions
-The synthetic survival data successfully demonstrates:
-- Realistic cancer survival patterns
+The synthetic survival data demonstrates:
+- Site- and stage-specific cancer survival patterns
 - Effective risk stratification models
 - Clinical relevance of key prognostic factors
 - Robust analytical methodology
@@ -194,7 +213,7 @@ The synthetic survival data successfully demonstrates:
 *Generated on {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
 
-    with open("reports/comprehensive_survival_report.md", "w") as f:
+    with open("reports/comprehensive_survival_report.md", "w", encoding="utf-8") as f:
         f.write(report_content)
 
     # Save summary statistics

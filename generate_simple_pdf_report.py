@@ -5,6 +5,8 @@ This script creates a professional PDF report without requiring
 the full deep learning framework installation.
 """
 
+import sys
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,46 +23,30 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 
+# Add the src directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-def create_sample_survival_data(n_samples=500, random_state=42):
-    """Create sample survival data for demonstration."""
-    np.random.seed(random_state)
+from analysis import compute_survival_summary
+from analysis.survival_summary import STAGE_ORDER
 
-    # Sample patient characteristics
-    ages = np.random.normal(65, 15, n_samples).clip(18, 95)
-    stages = np.random.choice(['I', 'II', 'III', 'IV'], n_samples, p=[0.3, 0.3, 0.25, 0.15])
-    grades = np.random.choice(['Low', 'Medium', 'High'], n_samples, p=[0.4, 0.4, 0.2])
 
-    # Risk factors
-    risk_score = (
-        (ages - 65) * 0.02 +
-        pd.Categorical(stages, categories=['I', 'II', 'III', 'IV']).codes * 0.5 +
-        pd.Categorical(grades, categories=['Low', 'Medium', 'High']).codes * 0.3 +
-        np.random.normal(0, 0.5, n_samples)
-    )
-
-    # Survival times based on risk
-    baseline_hazard = 0.01
-    survival_times = np.random.exponential(1 / (baseline_hazard * np.exp(risk_score))) * 12
-
-    # Censoring
-    censoring_times = np.random.exponential(60, n_samples)
-    observed_times = np.minimum(survival_times, censoring_times)
-    events = (survival_times <= censoring_times).astype(int)
-
-    # Clip times to reasonable range
-    observed_times = observed_times.clip(0.1, 120)  # Max 10 years
+def load_survival_report_data(data_path="data/synthetic_survival_sample.csv", random_state=42):
+    """Load the synthetic cohort and score each patient with a Cox proportional hazards model."""
+    df = pd.read_csv(data_path)
+    results = compute_survival_summary(df, random_state=random_state)
 
     return {
-        'times': observed_times,
-        'events': events,
-        'risk_scores': risk_score,
-        'ages': ages,
-        'stages': stages,
-        'grades': grades,
-        'n_samples': n_samples,
-        'event_rate': events.mean(),
-        'median_time': np.median(observed_times)
+        'times': df['survival_months'].values.astype(float),
+        'events': df['vital_status'].values,
+        # Log partial hazard: higher means higher predicted risk
+        'risk_scores': np.log(results['risk_scores']),
+        'ages': df['age_at_diagnosis'].values,
+        'stages': df['stage'].values,
+        'grades': df['grade'].values,
+        'n_samples': len(df),
+        'event_rate': results['event_rate'],
+        'median_time': results['median_follow_up'],
+        'c_index_test': results['c_index_test'],
     }
 
 
@@ -212,7 +198,7 @@ class SimplePDFReporter:
         ax1.grid(True, alpha=0.3)
 
         # Stage distribution
-        stage_counts = pd.Series(data['stages']).value_counts()
+        stage_counts = pd.Series(data['stages']).value_counts().reindex(STAGE_ORDER).dropna()
         ax2.bar(stage_counts.index, stage_counts.values, color='#F18F01', alpha=0.7)
         ax2.set_xlabel('Cancer Stage', fontsize=11, fontweight='bold')
         ax2.set_ylabel('Count', fontsize=11, fontweight='bold')
@@ -220,8 +206,11 @@ class SimplePDFReporter:
         ax2.grid(True, alpha=0.3, axis='y')
 
         # Grade distribution
-        grade_counts = pd.Series(data['grades']).value_counts()
-        ax3.bar(grade_counts.index, grade_counts.values, color='#A23B72', alpha=0.7)
+        grade_order = ['Well differentiated', 'Moderately differentiated', 'Poorly differentiated',
+                       'Undifferentiated', 'Unknown']
+        grade_counts = pd.Series(data['grades']).value_counts().reindex(grade_order).fillna(0)
+        grade_labels = ['Well', 'Moderate', 'Poor', 'Undiff.', 'Unknown']
+        ax3.bar(grade_labels, grade_counts.values, color='#A23B72', alpha=0.7)
         ax3.set_xlabel('Tumor Grade', fontsize=11, fontweight='bold')
         ax3.set_ylabel('Count', fontsize=11, fontweight='bold')
         ax3.set_title('Tumor Grade Distribution', fontsize=12, fontweight='bold')
@@ -229,7 +218,7 @@ class SimplePDFReporter:
 
         # Event rate by stage
         stage_event_rates = []
-        stages_ordered = ['I', 'II', 'III', 'IV']
+        stages_ordered = STAGE_ORDER
         for stage in stages_ordered:
             mask = data['stages'] == stage
             if mask.sum() > 0:
@@ -291,8 +280,8 @@ class SimplePDFReporter:
                               styles['Normal']))
         story.append(Spacer(1, 30))
 
-        # Compute metrics
-        c_index = compute_c_index(data['times'], data['events'], data['risk_scores'])
+        # Compute metrics (C-index on the held-out test split)
+        c_index = data['c_index_test']
 
         # Executive Summary
         story.append(Paragraph("Executive Summary", heading_style))
@@ -302,7 +291,9 @@ class SimplePDFReporter:
         The analysis achieved a C-index of {c_index:.3f}, indicating
         {'excellent' if c_index > 0.8 else 'good' if c_index > 0.7 else 'moderate'}
         discriminative performance. The overall event rate was {data['event_rate']:.1%}
-        with a median follow-up time of {data['median_time']:.1f} months.
+        with a median follow-up time of {data['median_time']:.0f} months. Risk scores come from a
+        Cox proportional hazards model using age, site, stage, grade, demographics, tumor size,
+        nodal status and treatment.
         """
 
         story.append(Paragraph(summary_text, styles['Normal']))
@@ -315,7 +306,7 @@ class SimplePDFReporter:
             ['Metric', 'Value'],
             ['Total Patients', str(data['n_samples'])],
             ['Event Rate', f"{data['event_rate']:.1%}"],
-            ['Median Follow-up (months)', f"{data['median_time']:.1f}"],
+            ['Median Follow-up (months)', f"{data['median_time']:.0f}"],
             ['Age Range', f"{data['ages'].min():.0f} - {data['ages'].max():.0f} years"],
             ['Median Age', f"{np.median(data['ages']):.0f} years"]
         ]
@@ -338,7 +329,7 @@ class SimplePDFReporter:
         story.append(Paragraph("Analysis Results", heading_style))
 
         performance_text = f"""
-        <b>Concordance Index (C-index):</b> {c_index:.4f}<br/>
+        <b>Concordance Index (C-index, 30% held-out test set):</b> {c_index:.4f}<br/>
         <i>Measures the ability to correctly rank patients by risk.
         Values > 0.7 indicate good discrimination, > 0.8 excellent.</i><br/><br/>
 
@@ -379,9 +370,9 @@ class SimplePDFReporter:
                     f'{median_time:.1f}'
                 ])
 
-        risk_table_data = [['Risk Group', 'Patients', 'Event Rate', 'Median Time (months)']] + risk_data
+        risk_table_data = [['Risk Group', 'Patients', 'Event Rate', 'Median Observed Time (months)']] + risk_data
 
-        risk_table = Table(risk_table_data, colWidths=[1.5*inch, 1*inch, 1.5*inch, 2*inch])
+        risk_table = Table(risk_table_data, colWidths=[1.3*inch, 1*inch, 1.2*inch, 2.5*inch])
         risk_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -452,7 +443,8 @@ class SimplePDFReporter:
 
         # Footer
         footer_text = """
-        <i>This report was generated for demonstration purposes using simulated data.
+        <i>This report was generated for demonstration purposes using synthetic data calibrated
+        to published cancer statistics.
         In clinical practice, all analyses should be validated with real patient data
         and interpreted by qualified medical professionals. Risk predictions should
         supplement, not replace, clinical judgment.</i>
@@ -470,19 +462,19 @@ def main():
     print("=== Generating Simple PDF Survival Analysis Report ===")
     print()
 
-    # Step 1: Create sample data
-    print("Step 1: Creating sample survival data...")
-    data = create_sample_survival_data(n_samples=800, random_state=42)
+    # Step 1: Load data and fit the Cox model
+    print("Step 1: Loading synthetic survival data...")
+    data = load_survival_report_data()
 
     print(f"Dataset: {data['n_samples']} patients")
     print(f"Event rate: {data['event_rate']:.1%}")
-    print(f"Median follow-up: {data['median_time']:.1f} months")
+    print(f"Median follow-up: {data['median_time']:.0f} months")
     print()
 
     # Step 2: Compute metrics
     print("Step 2: Computing survival metrics...")
-    c_index = compute_c_index(data['times'], data['events'], data['risk_scores'])
-    print(f"C-index: {c_index:.4f}")
+    c_index = data['c_index_test']
+    print(f"C-index (test set): {c_index:.4f}")
     print()
 
     # Step 3: Generate PDF report
@@ -492,7 +484,7 @@ def main():
 
     pdf_path = reporter.generate_pdf_report(
         data=data,
-        title="Survival Analysis Report - Sample Data"
+        title="Survival Analysis Report - Synthetic Cancer Cohort"
     )
 
     # Get file info

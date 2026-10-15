@@ -27,6 +27,9 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 # Add the src directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+from analysis import compute_survival_summary, format_months, describe_c_index
+from analysis.survival_summary import STAGE_ORDER
+
 # Import lifelines for survival analysis
 try:
     from lifelines import KaplanMeierFitter, CoxPHFitter
@@ -116,8 +119,8 @@ class PDFSurvivalReporter:
         ax1.grid(True, alpha=0.3)
 
         # Survival by stage
-        stages = df['stage'].unique()
-        colors = ['blue', 'green', 'orange', 'red', 'purple']
+        stages = [s for s in STAGE_ORDER if s in set(df['stage'])]
+        colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
         for i, stage in enumerate(stages):
             stage_data = df[df['stage'] == stage]
@@ -158,11 +161,17 @@ class PDFSurvivalReporter:
         ax3.legend()
         ax3.grid(True, alpha=0.3)
 
-        # Distribution plots
-        ax4.hist(df['survival_months'], bins=30, alpha=0.7, color='skyblue', edgecolor='black')
-        ax4.set_title('Distribution of Survival Times', fontsize=14, fontweight='bold')
-        ax4.set_xlabel('Survival Time (months)')
-        ax4.set_ylabel('Frequency')
+        # Survival by primary site
+        for i, site in enumerate(df['primary_site'].value_counts().index):
+            site_data = df[df['primary_site'] == site]
+            kmf_site = KaplanMeierFitter()
+            kmf_site.fit(site_data['survival_months'], site_data['vital_status'], label=site)
+            kmf_site.plot(ax=ax4, color=colors[i % len(colors)], ci_show=False)
+
+        ax4.set_title('Survival by Primary Site', fontsize=14, fontweight='bold')
+        ax4.set_xlabel('Time (months)')
+        ax4.set_ylabel('Survival Probability')
+        ax4.legend()
         ax4.grid(True, alpha=0.3)
 
         plt.tight_layout()
@@ -182,7 +191,7 @@ class PDFSurvivalReporter:
         ax1.set_title('Cancer Sites Distribution', fontsize=14, fontweight='bold')
 
         # Stage distribution
-        stage_counts = df['stage'].value_counts()
+        stage_counts = df['stage'].value_counts().reindex(STAGE_ORDER).dropna()
         bars = ax2.bar(stage_counts.index, stage_counts.values, color='lightcoral', alpha=0.8)
         ax2.set_title('Stage Distribution', fontsize=14, fontweight='bold')
         ax2.set_xlabel('Cancer Stage')
@@ -224,6 +233,12 @@ class PDFSurvivalReporter:
         """Generate comprehensive PDF report."""
         print("Generating PDF survival analysis report...")
 
+        results = compute_survival_summary(df)
+        c_index = results['c_index_test']
+        significant = results['hazard_ratios'][results['hazard_ratios']['p'] < 0.05] \
+            .sort_values('hr', ascending=False)
+        by_stage = results['by_stage']
+
         # Create visualizations
         survival_curves_path = self.create_survival_curves(df)
         summary_plots_path = self.create_summary_plots(df)
@@ -254,10 +269,10 @@ class PDFSurvivalReporter:
         to identify key prognostic factors and survival patterns.
 
         <b>Key Findings:</b>
-        • Event rate: {df['vital_status'].mean():.1%} ({df['vital_status'].sum()} deaths)
-        • Median follow-up time: {df['survival_months'].median():.1f} months
-        • Strong stage-dependent survival patterns observed
-        • Age and lymph node status are significant prognostic factors
+        • Event rate: {results['event_rate']:.1%} ({results['n_events']} deaths)
+        • Median follow-up time: {results['median_follow_up']:.0f} months
+        • Strong stage- and site-dependent survival patterns observed
+        • Age, grade and surgery are significant prognostic factors
         """
         story.append(Paragraph(summary_text, self.styles['Normal']))
         story.append(Spacer(1, 20))
@@ -270,7 +285,8 @@ class PDFSurvivalReporter:
             ['Metric', 'Value'],
             ['Total Patients', f"{len(df):,}"],
             ['Deaths (Events)', f"{df['vital_status'].sum():,} ({df['vital_status'].mean():.1%})"],
-            ['Median Follow-up', f"{df['survival_months'].median():.1f} months"],
+            ['Median Follow-up', f"{results['median_follow_up']:.0f} months"],
+            ['5-year Overall Survival', f"{results['overall']['survival_5yr']:.1%}"],
             ['Age Range', f"{df['age_at_diagnosis'].min():.0f} - {df['age_at_diagnosis'].max():.0f} years"],
             ['Mean Age', f"{df['age_at_diagnosis'].mean():.1f} years"],
         ]
@@ -300,15 +316,20 @@ class PDFSurvivalReporter:
         story.append(Paragraph("Survival Analysis Results", self.styles['SectionHeader']))
 
         # Stage-specific survival
-        stage_survival_text = """
+        stage_lines = '<br/>'.join(
+            f"• Stage {stage}: median survival {format_months(d['median_survival']).lower()}, "
+            f"5-year survival {d['survival_5yr']:.1%}"
+            for stage, d in by_stage.items())
+        site_lines = '<br/>'.join(
+            f"• {site}: median survival {format_months(d['median_survival']).lower()}, "
+            f"5-year survival {d['survival_5yr']:.1%}"
+            for site, d in results['by_site'].items())
+        stage_survival_text = f"""
         <b>Survival by Cancer Stage:</b><br/>
-        The analysis reveals clear stage-dependent survival patterns:
-
-        • Stage I: Excellent prognosis (median survival not reached)
-        • Stage II: 240.0 months median survival
-        • Stage III: 96.4 months median survival
-        • Stage IV: 63.8 months median survival
-        • Unknown stage: 109.2 months median survival
+        The analysis reveals clear stage-dependent survival patterns:<br/>
+        {stage_lines}<br/><br/>
+        <b>Survival by Primary Site:</b><br/>
+        {site_lines}<br/><br/>
 
         This demonstrates the critical importance of early detection and staging in cancer prognosis.
         """
@@ -324,18 +345,19 @@ class PDFSurvivalReporter:
         # Cox Model Results
         story.append(Paragraph("Cox Proportional Hazards Model", self.styles['SectionHeader']))
 
-        cox_text = """
+        hr_lines = '<br/>'.join(
+            f"• {name}: HR = {row['hr']:.2f} (95% CI {row['hr_lower']:.2f}-{row['hr_upper']:.2f})"
+            for name, row in significant.iterrows())
+        cox_text = f"""
         <b>Model Performance:</b><br/>
-        • Concordance Index (C-index): 0.699 (Good discrimination)<br/>
-        • The model demonstrates good predictive capability for risk stratification.
+        • Concordance Index (C-index, 30% held-out test set): {c_index:.3f}
+        ({describe_c_index(c_index).capitalize()} discrimination)<br/>
+        • The model demonstrates {describe_c_index(c_index)} predictive capability for risk stratification.<br/><br/>
 
-        <b>Significant Risk Factors (p < 0.05):</b><br/>
-        • Age at diagnosis: HR = 1.017 (increased risk with older age)<br/>
-        • Positive lymph nodes: HR = 1.256 (strong prognostic factor)<br/>
-        • Cancer stage: Highly significant predictor<br/>
-        &nbsp;&nbsp;- Stage II vs I: HR = 1.668<br/>
-        &nbsp;&nbsp;- Stage III vs I: HR = 4.076<br/>
-        &nbsp;&nbsp;- Stage IV vs I: HR = 5.117<br/>
+        <b>Significant Risk Factors (p &lt; 0.05):</b><br/>
+        {hr_lines}<br/><br/>
+
+        Reference groups: stage I, breast, well differentiated, female, White, no treatment.
 
         These results align with established clinical knowledge and demonstrate
         the model's validity for risk assessment.
@@ -346,20 +368,21 @@ class PDFSurvivalReporter:
         # Clinical Implications
         story.append(Paragraph("Clinical Implications", self.styles['SectionHeader']))
 
-        clinical_text = """
+        clinical_text = f"""
         <b>Key Clinical Insights:</b>
 
-        1. <b>Early Detection is Critical:</b> Stage I patients show excellent survival outcomes,
+        1. <b>Early Detection is Critical:</b> Stage I patients have {by_stage['I']['survival_5yr']:.0%} 5-year
+           survival versus {by_stage['IV']['survival_5yr']:.0%} for stage IV,
            emphasizing the importance of screening and early detection programs.
 
         2. <b>Risk Stratification:</b> The model provides effective risk stratification with
-           a C-index of 0.699, enabling personalized treatment planning.
+           a C-index of {c_index:.3f}, enabling personalized treatment planning.
 
         3. <b>Age Considerations:</b> Older patients face increased mortality risk, suggesting
            need for age-adjusted treatment protocols.
 
-        4. <b>Lymph Node Assessment:</b> Lymph node involvement remains a crucial prognostic
-           factor requiring careful surgical and pathological evaluation.
+        4. <b>Tumor Biology:</b> Poorly differentiated and undifferentiated tumors carry
+           substantially higher risk, and lung cancer has the poorest prognosis of the sites studied.
 
         5. <b>Follow-up Strategies:</b> Advanced stage patients require more intensive
            monitoring and potentially aggressive treatment approaches.
@@ -370,7 +393,7 @@ class PDFSurvivalReporter:
         # Conclusions
         story.append(Paragraph("Conclusions", self.styles['SectionHeader']))
 
-        conclusions_text = """
+        conclusions_text = f"""
         This survival analysis successfully demonstrates:
 
         • <b>Robust Methodology:</b> Application of standard survival analysis techniques
@@ -379,8 +402,8 @@ class PDFSurvivalReporter:
         • <b>Clinical Validity:</b> Results consistent with established clinical knowledge
           and cancer biology principles.
 
-        • <b>Predictive Capability:</b> The developed model shows good discrimination
-          (C-index = 0.699) for risk stratification.
+        • <b>Predictive Capability:</b> The developed model shows {describe_c_index(c_index)} discrimination
+          (C-index = {c_index:.3f}) for risk stratification.
 
         • <b>Actionable Insights:</b> Clear identification of key prognostic factors
           that can inform clinical decision-making.

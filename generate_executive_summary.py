@@ -2,9 +2,16 @@
 Generate Executive Summary of All Reports Generated
 """
 
+import sys
+import os
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+
+# Add the src directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from analysis import compute_survival_summary, describe_c_index
 
 def generate_executive_summary():
     """Generate summary of all generated reports."""
@@ -50,11 +57,11 @@ def generate_executive_summary():
         print("="*50)
         print(f"Dataset: {len(df):,} cancer patients")
         print(f"Event Rate: {df['vital_status'].mean():.1%} ({df['vital_status'].sum()} deaths)")
-        print(f"Median Follow-up: {df['survival_months'].median():.1f} months")
+        print(f"Median Observed Time: {df['survival_months'].median():.1f} months")
         print(f"Age Range: {df['age_at_diagnosis'].min():.0f}-{df['age_at_diagnosis'].max():.0f} years")
 
         print(f"\nSTAGE DISTRIBUTION:")
-        stage_counts = df['stage'].value_counts().sort_index()
+        stage_counts = df['stage'].value_counts().reindex(['I', 'II', 'III', 'IV', 'Unknown']).dropna().astype(int)
         for stage, count in stage_counts.items():
             print(f"  Stage {stage}: {count} patients ({count/len(df):.1%})")
 
@@ -63,13 +70,22 @@ def generate_executive_summary():
         for site, count in site_counts.head(3).items():
             print(f"  {site}: {count} patients ({count/len(df):.1%})")
 
-    print(f"\nKEY FINDINGS:")
-    print("="*50)
-    print("• Clear stage-dependent survival hierarchy (I > II > III > IV)")
-    print("• Age significantly impacts survival outcomes")
-    print("• Lymph node involvement is a strong prognostic factor")
-    print("• Cox model achieved C-index of 0.699 (good discrimination)")
-    print("• Results consistent with clinical expectations")
+        results = compute_survival_summary(df)
+        by_stage = results['by_stage']
+        by_site = results['by_site']
+        worst_site = min(by_site, key=lambda s: by_site[s]['survival_5yr'])
+        c_index = results['c_index_test']
+
+        print(f"\nKEY FINDINGS:")
+        print("="*50)
+        print(f"• Clear stage-dependent survival: 5-year survival {by_stage['I']['survival_5yr']:.0%} "
+              f"(stage I) vs {by_stage['IV']['survival_5yr']:.0%} (stage IV)")
+        print(f"• {worst_site} has the poorest prognosis "
+              f"({by_site[worst_site]['survival_5yr']:.0%} 5-year survival)")
+        print("• Age and tumor grade significantly impact survival outcomes")
+        print(f"• Cox model achieved C-index of {c_index:.3f} on a held-out test set "
+              f"({describe_c_index(c_index)} discrimination)")
+        print("• Results consistent with clinical expectations")
 
     print(f"\nREPORT LOCATIONS:")
     print("="*50)

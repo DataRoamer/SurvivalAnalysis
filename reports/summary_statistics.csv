@@ -1,11 +1,12 @@
 Metric,Value
 Total Patients,"1,000"
-Deaths (Events),218
-Event Rate,21.8%
-Median Follow-up (months),31.4
-Mean Age (years),64.7
-Stage I Patients,241 (24.1%)
-Stage II Patients,263 (26.3%)
-Stage III Patients,240 (24.0%)
-Stage IV Patients,198 (19.8%)
-C-index,0.699
+Deaths (Events),351
+Event Rate,35.1%
+Median Follow-up (months),67
+Mean Age (years),66.9
+Stage I Patients,415 (41.5%)
+Stage II Patients,252 (25.2%)
+Stage III Patients,116 (11.6%)
+Stage IV Patients,167 (16.7%)
+5-year Overall Survival,67.3%
+C-index (test set),0.794

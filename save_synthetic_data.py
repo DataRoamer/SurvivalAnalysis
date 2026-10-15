@@ -30,7 +30,7 @@ def main():
     print(f"Shape: {df.shape}")
     print(f"Columns: {list(df.columns)}")
     print(f"Event rate: {df['vital_status'].mean():.3f}")
-    print(f"Median survival: {df['survival_months'].median():.1f} months")
+    print(f"Median observed time: {df['survival_months'].median():.1f} months")
 
     print("\nFirst 5 rows:")
     print(df.head())
