@@ -1,5 +1,5 @@
 """Data processing and preprocessing utilities for survival analysis."""
 
-from .seer_preprocessor import SEERPreprocessor, load_seer_data, create_sample_seer_data
+from .survival_preprocessor import SurvivalDataPreprocessor, load_survival_data, create_synthetic_survival_data
 
-__all__ = ['SEERPreprocessor', 'load_seer_data', 'create_sample_seer_data']
+__all__ = ['SurvivalDataPreprocessor', 'load_survival_data', 'create_synthetic_survival_data']

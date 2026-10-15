@@ -13,7 +13,7 @@ def generate_comprehensive_report():
     """Generate comprehensive survival analysis report."""
 
     # Load the synthetic data
-    df = pd.read_csv("data/synthetic_seer_sample.csv")
+    df = pd.read_csv("data/synthetic_survival_sample.csv")
 
     print("=== COMPREHENSIVE SURVIVAL ANALYSIS REPORT ===\n")
 
@@ -96,7 +96,7 @@ def generate_comprehensive_report():
     print("• Balanced representation: Good distribution across cancer stages")
     print("• Adequate follow-up: Sufficient time for survival analysis")
     print("• Sample size: 1,000 patients provides statistical power")
-    print("• Realistic patterns: Synthetic data mirrors real SEER characteristics")
+    print("• Realistic patterns: Synthetic data mirrors realistic cancer registry characteristics")
 
     # Clinical Implications
     print(f"\nCLINICAL IMPLICATIONS")
@@ -140,7 +140,7 @@ def generate_comprehensive_report():
     report_content = f"""# Comprehensive Survival Analysis Report
 
 ## Executive Summary
-This analysis used synthetic SEER data (n=1,000) to demonstrate survival analysis methodologies and validate model performance. The results show realistic cancer survival patterns consistent with clinical expectations.
+This analysis used synthetic survival data (n=1,000) to demonstrate survival analysis methodologies and validate model performance. The results show realistic cancer survival patterns consistent with clinical expectations.
 
 ## Dataset Overview
 - **Total Patients**: {len(df):,}
@@ -185,7 +185,7 @@ This analysis used synthetic SEER data (n=1,000) to demonstrate survival analysi
 - No major violations of proportional hazards assumption
 
 ## Conclusions
-The synthetic SEER data successfully demonstrates:
+The synthetic survival data successfully demonstrates:
 - Realistic cancer survival patterns
 - Effective risk stratification models
 - Clinical relevance of key prognostic factors

@@ -1,8 +1,8 @@
 """
-Comprehensive Example: Deep Learning Survival Analysis with SEER Data
+Comprehensive Example: Deep Learning Survival Analysis with Synthetic Survival Data
 
 This script demonstrates the complete workflow for survival analysis using
-deep learning models with SEER cancer registry data.
+deep learning models with cancer survival data.
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Import survival analysis modules
-from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data, load_seer_data
+from src.data.survival_preprocessor import SurvivalDataPreprocessor, create_synthetic_survival_data, load_survival_data
 from src.models.deep_survival import get_model_class
 from src.utils.trainer import SurvivalTrainer, train_multiple_models
 from src.utils.visualization import SurvivalVisualizer, create_survival_dashboard
@@ -22,30 +22,26 @@ from src.evaluation.metrics import compute_all_metrics, print_metrics_summary
 
 def main():
     """Run complete survival analysis pipeline."""
-    print("=== Deep Learning Survival Analysis with SEER Data ===")
+    print("=== Deep Learning Survival Analysis with Synthetic Survival Data ===")
     print()
 
     # Set random seed for reproducibility
     np.random.seed(42)
 
-    # Step 1: Load Real SEER Data
-    print("Step 1: Loading Real SEER Data")
+    # Step 1: Load Real Data
+    print("Step 1: Loading Real Data")
     print("-" * 40)
 
-    # Try to load real SEER data first, fallback to synthetic if not available
-    real_data_paths = [
-        'data/seer_processed.csv',
-        'data/SEER_breast_cancer.csv',
-        'data/seer_breast_cancer.csv'
-    ]
+    # Try to load real survival data first, fallback to synthetic if not available
+    real_data_paths = ['data/survival_data.csv']
 
     df = None
     for path in real_data_paths:
         if Path(path).exists():
             try:
-                print(f"Loading real SEER data from: {path}")
-                df = load_seer_data(path)
-                print("✓ Successfully loaded real SEER data")
+                print(f"Loading real survival data from: {path}")
+                df = load_survival_data(path)
+                print("✓ Successfully loaded real survival data")
                 break
             except Exception as e:
                 print(f"✗ Error loading {path}: {e}")
@@ -53,9 +49,9 @@ def main():
 
     # Fallback to synthetic data if real data not available
     if df is None:
-        print("⚠ Real SEER data not found, using synthetic data")
-        print("To use real data, run: python extract_seer_data.py")
-        df = create_sample_seer_data(n_samples=2000, random_state=42)
+        print("⚠ Real survival data not found, using synthetic data")
+        print("To use your own data, save it as: data/survival_data.csv")
+        df = create_synthetic_survival_data(n_samples=2000, random_state=42)
 
     print(f"Dataset shape: {df.shape}")
     print(f"Event rate: {df['vital_status'].mean():.3f}")
@@ -71,7 +67,7 @@ def main():
     print("Step 2: Data Preprocessing")
     print("-" * 40)
 
-    preprocessor = SEERPreprocessor(
+    preprocessor = SurvivalDataPreprocessor(
         time_col='survival_months',
         event_col='vital_status',
         categorical_strategy='onehot',
@@ -118,7 +114,7 @@ def main():
         X_val, t_val, e_val,
         X_test, t_test, e_test,
         models=['deepsurv', 'deephit', 'mtlr'],
-        save_dir='seer_experiments',
+        save_dir='experiments',
         max_epochs=50,
         early_stopping_patience=10,
         eval_time_points=eval_time_points,
@@ -160,7 +156,7 @@ def main():
     tuning_trainer = SurvivalTrainer(
         model_name=best_model_name,
         max_epochs=30,
-        save_dir='seer_tuning',
+        save_dir='tuning',
         experiment_name=f'{best_model_name}_tuned',
         eval_time_points=eval_time_points
     )
@@ -199,10 +195,10 @@ def main():
         final_predictions['survival_probs'],
         final_predictions['time_points'],
         preprocessor.feature_names,
-        save_dir='seer_dashboard'
+        save_dir='dashboard'
     )
 
-    print(f"Dashboard created with {len(dashboard_figures)} plots saved to 'seer_dashboard/'")
+    print(f"Dashboard created with {len(dashboard_figures)} plots saved to 'dashboard/'")
 
     # Create additional specific visualizations
     visualizer = SurvivalVisualizer()
@@ -212,7 +208,7 @@ def main():
         model_results['comparison'],
         metrics=['c_index', 'integrated_brier_score'],
         title="Model Performance Comparison",
-        save_path='seer_dashboard/model_comparison.png'
+        save_path='dashboard/model_comparison.png'
     )
 
     # Feature importance (mock data - in practice, use SHAP or similar)
@@ -227,7 +223,7 @@ def main():
             importance_type="Mock Importance",
             top_k=15,
             title="Feature Importance Analysis",
-            save_path='seer_dashboard/feature_importance.png'
+            save_path='dashboard/feature_importance.png'
         )
 
     print("Additional visualizations created!")
@@ -240,7 +236,7 @@ def main():
     cv_trainer = SurvivalTrainer(
         model_name=best_model_name,
         max_epochs=20,  # Reduce for faster CV
-        save_dir='seer_cv',
+        save_dir='cv',
         experiment_name=f'{best_model_name}_cv'
     )
 
@@ -313,7 +309,7 @@ def main():
     best_c_index = tuned_results['metrics']['c_index']
     best_brier = tuned_results['metrics'].get('integrated_brier_score', 'N/A')
 
-    print("SEER Survival Analysis Summary:")
+    print("Survival Analysis Summary:")
     print(f"  • Dataset: {df.shape[0]} patients with {df.shape[1]} features")
     print(f"  • Best model: {best_model_name.upper()}")
     print(f"  • Final C-index: {best_c_index:.4f}")
@@ -337,7 +333,7 @@ def main():
     print()
 
     # Save final model and preprocessor
-    save_dir = Path('seer_final_model')
+    save_dir = Path('final_model')
     save_dir.mkdir(exist_ok=True)
 
     import torch
@@ -361,7 +357,7 @@ def main():
         'n_features': len(preprocessor.feature_names),
         'event_rate': df['vital_status'].mean(),
         'median_followup': df['survival_months'].median(),
-        'dataset_name': 'Sample SEER Cancer Registry Data',
+        'dataset_name': 'Synthetic Cancer Survival Data',
         'train_samples': len(X_train),
         'test_samples': len(X_test),
         'feature_names': preprocessor.feature_names,
@@ -390,8 +386,8 @@ def main():
         dataset_info=comprehensive_dataset_info,
         model_results=comprehensive_model_results,
         feature_names=preprocessor.feature_names,
-        output_dir="comprehensive_seer_reports",
-        report_title="Comprehensive Deep Learning Survival Analysis Report - SEER Data"
+        output_dir="comprehensive_reports",
+        report_title="Comprehensive Deep Learning Survival Analysis Report - Synthetic Survival Data"
     )
 
     print("📊 Comprehensive reports generated:")

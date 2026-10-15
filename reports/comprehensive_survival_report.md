@@ -1,7 +1,7 @@
 # Comprehensive Survival Analysis Report
 
 ## Executive Summary
-This analysis used synthetic SEER data (n=1,000) to demonstrate survival analysis methodologies and validate model performance. The results show realistic cancer survival patterns consistent with clinical expectations.
+This analysis used synthetic survival data (n=1,000) to demonstrate survival analysis methodologies and validate model performance. The results show realistic cancer survival patterns consistent with clinical expectations.
 
 ## Dataset Overview
 - **Total Patients**: 1,000
@@ -55,7 +55,7 @@ This analysis used synthetic SEER data (n=1,000) to demonstrate survival analysi
 - No major violations of proportional hazards assumption
 
 ## Conclusions
-The synthetic SEER data successfully demonstrates:
+The synthetic survival data successfully demonstrates:
 - Realistic cancer survival patterns
 - Effective risk stratification models
 - Clinical relevance of key prognostic factors

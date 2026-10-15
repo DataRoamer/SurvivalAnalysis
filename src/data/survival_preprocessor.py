@@ -1,7 +1,7 @@
 """
-SEER Data Preprocessing Pipeline for Survival Analysis
+Survival Data Preprocessing Pipeline for Survival Analysis
 
-This module provides comprehensive preprocessing capabilities for SEER cancer registry data,
+This module provides comprehensive preprocessing capabilities for cancer survival data,
 preparing it for deep learning survival analysis models.
 """
 
@@ -12,9 +12,9 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 import warnings
 
-class SEERPreprocessor:
+class SurvivalDataPreprocessor:
     """
-    Preprocessor for SEER cancer registry data for survival analysis.
+    Preprocessor for cancer survival data for survival analysis.
 
     Handles missing values, categorical encoding, feature scaling, and data splitting
     while preserving survival analysis structure (time-to-event and censoring).
@@ -27,7 +27,7 @@ class SEERPreprocessor:
                  missing_strategy: str = 'median',
                  scale_features: bool = True):
         """
-        Initialize SEER preprocessor.
+        Initialize survival data preprocessor.
 
         Args:
             time_col: Column name for survival time
@@ -209,7 +209,7 @@ class SEERPreprocessor:
         Fit preprocessor and transform training data.
 
         Args:
-            df: Raw SEER dataframe
+            df: Raw survival dataframe
 
         Returns:
             Tuple of (features, times, events)
@@ -239,7 +239,7 @@ class SEERPreprocessor:
         Transform new data using fitted preprocessor.
 
         Args:
-            df: Raw SEER dataframe
+            df: Raw survival dataframe
 
         Returns:
             Tuple of (features, times, events)
@@ -324,12 +324,12 @@ class SEERPreprocessor:
         }
 
 
-def load_seer_data(file_path: str, **kwargs) -> pd.DataFrame:
+def load_survival_data(file_path: str, **kwargs) -> pd.DataFrame:
     """
-    Load SEER data from various file formats.
+    Load survival data from various file formats.
 
     Args:
-        file_path: Path to SEER data file
+        file_path: Path to survival data file
         **kwargs: Additional arguments for pandas read functions
 
     Returns:
@@ -345,20 +345,20 @@ def load_seer_data(file_path: str, **kwargs) -> pd.DataFrame:
         raise ValueError(f"Unsupported file format: {file_path}")
 
 
-def create_sample_seer_data(n_samples: int = 1000, random_state: int = 42) -> pd.DataFrame:
+def create_synthetic_survival_data(n_samples: int = 1000, random_state: int = 42) -> pd.DataFrame:
     """
-    Create sample SEER-like data for testing and development.
+    Create sample synthetic survival data for testing and development.
 
     Args:
         n_samples: Number of samples to generate
         random_state: Random seed
 
     Returns:
-        Sample dataframe with SEER-like structure
+        Sample dataframe with a realistic cancer survival data structure
     """
     np.random.seed(random_state)
 
-    # Categorical features typical in SEER data
+    # Categorical features typical in cancer registry data
     sites = ['Breast', 'Lung', 'Prostate', 'Colorectal', 'Melanoma', 'Bladder']
     stages = ['I', 'II', 'III', 'IV', 'Unknown']
     grades = ['Well', 'Moderate', 'Poor', 'Undifferentiated', 'Unknown']

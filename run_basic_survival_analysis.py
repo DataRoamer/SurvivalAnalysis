@@ -1,5 +1,5 @@
 """
-Basic Survival Analysis with Synthetic SEER Data
+Basic Survival Analysis with Synthetic Survival Data
 
 This script performs traditional survival analysis using lifelines library
 instead of deep learning methods to avoid PyTorch dependency issues.
@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 # Add the src directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from data.seer_preprocessor import SEERPreprocessor, load_seer_data
+from data.survival_preprocessor import SurvivalDataPreprocessor, load_survival_data
 
 def install_lifelines():
     """Install lifelines library for survival analysis."""
@@ -51,15 +51,15 @@ except ImportError:
 
 
 def load_synthetic_data():
-    """Load the synthetic SEER data we generated."""
-    data_path = "data/synthetic_seer_sample.csv"
+    """Load the synthetic survival data we generated."""
+    data_path = "data/synthetic_survival_sample.csv"
 
     if not Path(data_path).exists():
         print(f"Synthetic data not found at {data_path}")
         print("Generating new synthetic data...")
 
-        from data.seer_preprocessor import create_sample_seer_data
-        df = create_sample_seer_data(n_samples=1000, random_state=42)
+        from data.survival_preprocessor import create_synthetic_survival_data
+        df = create_synthetic_survival_data(n_samples=1000, random_state=42)
         os.makedirs("data", exist_ok=True)
         df.to_csv(data_path, index=False)
         print(f"Generated and saved synthetic data to {data_path}")
@@ -219,7 +219,7 @@ def generate_summary_report(df, stage_results):
     """Generate a summary report of the analysis."""
 
     report = f"""
-# Survival Analysis Report - Synthetic SEER Data
+# Survival Analysis Report - Synthetic Survival Data
 
 ## Dataset Overview
 - **Total Patients**: {len(df):,}
@@ -273,7 +273,7 @@ def generate_summary_report(df, stage_results):
 
 def main():
     """Main function to run survival analysis."""
-    print("=== Survival Analysis with Synthetic SEER Data ===\n")
+    print("=== Survival Analysis with Synthetic Survival Data ===\n")
 
     # Install lifelines if needed
     global LIFELINES_AVAILABLE

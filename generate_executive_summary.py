@@ -15,8 +15,8 @@ def generate_executive_summary():
     files_generated = []
 
     # Data files
-    if Path("data/synthetic_seer_sample.csv").exists():
-        files_generated.append("SUCCESS: Synthetic SEER Data (1,000 patients)")
+    if Path("data/synthetic_survival_sample.csv").exists():
+        files_generated.append("SUCCESS: Synthetic Survival Data (1,000 patients)")
 
     # Reports
     if Path("reports/comprehensive_survival_report.md").exists():
@@ -43,8 +43,8 @@ def generate_executive_summary():
         print(file)
 
     # Analysis summary
-    if Path("data/synthetic_seer_sample.csv").exists():
-        df = pd.read_csv("data/synthetic_seer_sample.csv")
+    if Path("data/synthetic_survival_sample.csv").exists():
+        df = pd.read_csv("data/synthetic_survival_sample.csv")
 
         print(f"\nANALYSIS SUMMARY:")
         print("="*50)
@@ -88,7 +88,7 @@ def generate_executive_summary():
 
     print(f"\nNEXT STEPS:")
     print("="*50)
-    print("• Replace synthetic data with real SEER data when available")
+    print("• Replace synthetic data with real survival data when available")
     print("• Re-run analysis with actual patient data")
     print("• Validate findings against clinical literature")
     print("• Consider additional prognostic factors")

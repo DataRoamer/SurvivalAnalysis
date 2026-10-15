@@ -10,7 +10,7 @@ A comprehensive deep learning framework for survival analysis. This package impl
 - **Neural MTLR**: Multi-task logistic regression for survival analysis
 
 ### 📊 **Comprehensive Data Pipeline**
-- SEER data preprocessing and feature engineering
+- Survival data preprocessing and feature engineering
 - Automated handling of missing values and categorical encoding
 - Stratified train/validation/test splitting
 - Feature scaling and normalization
@@ -52,15 +52,15 @@ pip install -r requirements.txt
 ## Quick Start
 
 ```python
-from src.data.seer_preprocessor import create_sample_seer_data, SEERPreprocessor
+from src.data.survival_preprocessor import create_synthetic_survival_data, SurvivalDataPreprocessor
 from src.utils.trainer import SurvivalTrainer
 from src.utils.visualization import create_survival_dashboard
 
-# 1. Load or create SEER data
-df = create_sample_seer_data(n_samples=1000)
+# 1. Load or create survival data
+df = create_synthetic_survival_data(n_samples=1000)
 
 # 2. Preprocess data
-preprocessor = SEERPreprocessor()
+preprocessor = SurvivalDataPreprocessor()
 X, t, e = preprocessor.fit_transform(df)
 
 # 3. Split data
@@ -92,7 +92,7 @@ dashboard = create_survival_dashboard(
 Run the complete analysis pipeline:
 
 ```bash
-python example_seer_survival_analysis.py
+python example_survival_analysis.py
 ```
 
 This example demonstrates:
@@ -133,7 +133,7 @@ Multi-Task Logistic Regression implemented with neural networks.
 ## Data Structure
 
 ### Input Data Format
-Your SEER data should include:
+Your survival data should include:
 
 | Column | Description | Type |
 |--------|-------------|------|
@@ -150,10 +150,10 @@ Your SEER data should include:
 
 ### Sample Data Generation
 ```python
-from src.data.seer_preprocessor import create_sample_seer_data
+from src.data.survival_preprocessor import create_synthetic_survival_data
 
-# Generate realistic SEER-like data for testing
-df = create_sample_seer_data(
+# Generate realistic synthetic survival data for testing
+df = create_synthetic_survival_data(
     n_samples=5000,
     random_state=42
 )
@@ -386,8 +386,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 If you use this package in your research, please cite:
 
 ```bibtex
-@software{deep_survival_seer,
-  title={Deep Learning Survival Analysis with SEER Data},
+@software{deep_survival_analysis,
+  title={Deep Learning Survival Analysis},
   author={DataRoamer},
   year={2024},
   url={https://github.com/your-repo/survival-analysis}

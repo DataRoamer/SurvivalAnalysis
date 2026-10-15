@@ -48,7 +48,7 @@ class ProjectSummaryReporter:
         # Define components and their positions
         components = {
             'Data Layer': {'pos': (2, 7), 'color': '#2E86AB', 'width': 3, 'height': 1},
-            'SEER Data\nPreprocessing': {'pos': (0.5, 5.5), 'color': '#A23B72', 'width': 2.5, 'height': 0.8},
+            'Survival Data\nPreprocessing': {'pos': (0.5, 5.5), 'color': '#A23B72', 'width': 2.5, 'height': 0.8},
             'Feature\nEngineering': {'pos': (3.5, 5.5), 'color': '#A23B72', 'width': 2.5, 'height': 0.8},
 
             'Model Layer': {'pos': (2, 4), 'color': '#F18F01', 'width': 3, 'height': 1},
@@ -296,8 +296,8 @@ class ProjectSummaryReporter:
 
         exec_summary = """
         This project successfully developed and implemented a state-of-the-art deep learning framework
-        for survival analysis specifically designed for SEER (Surveillance, Epidemiology, and End Results)
-        cancer registry data. The framework integrates three advanced neural network architectures
+        for survival analysis on cancer registry-style data, developed and validated using a realistic
+        synthetic cancer survival dataset. The framework integrates three advanced neural network architectures
         (DeepSurv, DeepHit, and Neural MTLR) with comprehensive data preprocessing, evaluation metrics,
         and professional reporting capabilities.
 
@@ -320,10 +320,10 @@ class ProjectSummaryReporter:
         • Create DeepHit for competing risks analysis<br/>
         • Build Neural MTLR for discrete time survival modeling<br/><br/>
 
-        <b>2. Create SEER-Specific Data Pipeline</b><br/>
+        <b>2. Create Cancer Survival Data Pipeline</b><br/>
         • Design comprehensive preprocessing for cancer registry data<br/>
         • Handle missing values, categorical encoding, and feature scaling<br/>
-        • Ensure compatibility with SEER data formats and structures<br/><br/>
+        • Ensure compatibility with survival data formats and structures<br/><br/>
 
         <b>3. Establish Robust Evaluation Framework</b><br/>
         • Implement Harrell's C-index for discrimination assessment<br/>
@@ -364,7 +364,7 @@ class ProjectSummaryReporter:
         tech_description = """
         The framework follows a modular, layered architecture designed for scalability and maintainability:
 
-        <b>Data Layer:</b> Handles SEER data ingestion, validation, and preprocessing with support for
+        <b>Data Layer:</b> Handles survival data ingestion, validation, and preprocessing with support for
         multiple file formats and missing value strategies.
 
         <b>Model Layer:</b> Implements three state-of-the-art deep learning architectures using PyTorch
@@ -582,7 +582,7 @@ class ProjectSummaryReporter:
         conclusions = """
         The Deep Learning Survival Analysis Framework represents a significant advancement in
         the application of artificial intelligence to cancer care. By successfully integrating
-        state-of-the-art neural network architectures with comprehensive SEER data processing
+        state-of-the-art neural network architectures with comprehensive survival data processing
         capabilities, the project delivers a robust, scalable, and clinically relevant solution
         for survival prediction.
 
@@ -616,9 +616,6 @@ class ProjectSummaryReporter:
         survival analysis and deep learning communities. Special recognition goes to the
         developers of PyTorch, scikit-learn, and lifelines packages, whose excellent
         implementations made this work possible.
-
-        The SEER program's commitment to providing high-quality cancer surveillance data
-        enables research that advances cancer care and outcomes for patients worldwide.
         """
 
         story.append(Paragraph(acknowledgments, styles['Normal']))

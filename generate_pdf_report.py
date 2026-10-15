@@ -29,7 +29,7 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.charts.linecharts import HorizontalLineChart
 
 # Import survival analysis modules
-from src.data.seer_preprocessor import SEERPreprocessor, create_sample_seer_data, load_seer_data
+from src.data.survival_preprocessor import SurvivalDataPreprocessor, create_synthetic_survival_data, load_survival_data
 from src.utils.trainer import SurvivalTrainer
 from src.evaluation.metrics import compute_all_metrics
 
@@ -437,23 +437,19 @@ def main():
     print("=== Generating PDF Survival Analysis Report ===")
     print()
 
-    # Step 1: Load real SEER data
-    print("Step 1: Loading SEER data...")
+    # Step 1: Load real survival data
+    print("Step 1: Loading survival data...")
 
-    # Try to load real SEER data first, fallback to synthetic if not available
-    real_data_paths = [
-        'data/seer_processed.csv',
-        'data/SEER_breast_cancer.csv',
-        'data/seer_breast_cancer.csv'
-    ]
+    # Try to load real survival data first, fallback to synthetic if not available
+    real_data_paths = ['data/survival_data.csv']
 
     df = None
     for path in real_data_paths:
         if Path(path).exists():
             try:
-                print(f"Loading real SEER data from: {path}")
-                df = load_seer_data(path)
-                print("✓ Successfully loaded real SEER data")
+                print(f"Loading real survival data from: {path}")
+                df = load_survival_data(path)
+                print("✓ Successfully loaded real survival data")
                 break
             except Exception as e:
                 print(f"✗ Error loading {path}: {e}")
@@ -461,16 +457,16 @@ def main():
 
     # Fallback to synthetic data if real data not available
     if df is None:
-        print("⚠ Real SEER data not found, using synthetic data")
-        print("To use real data, run: python extract_seer_data.py")
-        df = create_sample_seer_data(n_samples=1000, random_state=42)
+        print("⚠ Real survival data not found, using synthetic data")
+        print("To use your own data, save it as: data/survival_data.csv")
+        df = create_synthetic_survival_data(n_samples=1000, random_state=42)
 
     dataset_info = {
         'n_samples': len(df),
         'n_features': len(df.columns) - 2,  # Exclude time and event columns
         'event_rate': df['vital_status'].mean(),
         'median_followup': df['survival_months'].median(),
-        'dataset_name': 'Sample SEER Cancer Registry Data'
+        'dataset_name': 'Synthetic Cancer Survival Data'
     }
 
     print(f"Dataset: {dataset_info['n_samples']} patients, {dataset_info['n_features']} features")
@@ -479,7 +475,7 @@ def main():
 
     # Step 2: Preprocess data
     print("Step 2: Preprocessing data...")
-    preprocessor = SEERPreprocessor()
+    preprocessor = SurvivalDataPreprocessor()
     X, t, e = preprocessor.fit_transform(df)
 
     # Split data
@@ -522,7 +518,7 @@ def main():
         events_true=e_test,
         risk_scores=test_results['predictions']['risk_scores'],
         dataset_info=dataset_info,
-        title="Deep Learning Survival Analysis Report - SEER Data"
+        title="Deep Learning Survival Analysis Report - Synthetic Survival Data"
     )
 
     # Get file size

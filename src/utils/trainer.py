@@ -22,7 +22,7 @@ from pathlib import Path
 
 from ..models.deep_survival import DeepSurv, DeepHit, NeuralMTLR, create_data_loaders, get_model_class
 from ..evaluation.metrics import SurvivalMetricsTracker, compute_all_metrics
-from ..data.seer_preprocessor import SEERPreprocessor
+from ..data.survival_preprocessor import SurvivalDataPreprocessor
 
 
 class SurvivalTrainer:

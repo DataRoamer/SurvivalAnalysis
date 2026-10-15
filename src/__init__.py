@@ -2,13 +2,13 @@
 Deep Learning Survival Analysis Package
 
 A comprehensive package for survival analysis using deep learning models
-with SEER cancer registry data.
+with cancer survival data.
 """
 
 __version__ = "1.0.0"
 __author__ = "DataRoamer"
 
-from .data.seer_preprocessor import SEERPreprocessor, load_seer_data, create_sample_seer_data
+from .data.survival_preprocessor import SurvivalDataPreprocessor, load_survival_data, create_synthetic_survival_data
 from .models.deep_survival import DeepSurv, DeepHit, NeuralMTLR, SurvivalDataset, create_data_loaders
 from .evaluation.metrics import (
     harrell_c_index, time_dependent_auc, integrated_brier_score,
@@ -20,9 +20,9 @@ from .reports.report_generator import SurvivalAnalysisReporter, generate_surviva
 
 __all__ = [
     # Data preprocessing
-    'SEERPreprocessor',
-    'load_seer_data',
-    'create_sample_seer_data',
+    'SurvivalDataPreprocessor',
+    'load_survival_data',
+    'create_synthetic_survival_data',
 
     # Models
     'DeepSurv',

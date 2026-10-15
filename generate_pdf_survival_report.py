@@ -243,7 +243,7 @@ class PDFSurvivalReporter:
         story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}",
                               self.styles['Normal']))
         story.append(Spacer(1, 10))
-        story.append(Paragraph("SEER Cancer Data Analysis", self.styles['Heading2']))
+        story.append(Paragraph("Cancer Survival Data Analysis", self.styles['Heading2']))
         story.append(PageBreak())
 
         # Executive Summary
@@ -402,7 +402,7 @@ def main():
     print("=== PDF Survival Analysis Report Generation ===\n")
 
     # Load the synthetic data
-    data_path = "data/synthetic_seer_sample.csv"
+    data_path = "data/synthetic_survival_sample.csv"
     if not Path(data_path).exists():
         print(f"Error: Data file not found at {data_path}")
         print("Please run the analysis first to generate the data.")
