@@ -1,6 +1,6 @@
 # Deep Learning Survival Analysis with SEER Data
 
-A comprehensive deep learning framework for survival analysis using SEER (Surveillance, Epidemiology, and End Results) cancer registry data. This package implements state-of-the-art survival analysis models including DeepSurv, DeepHit, and Neural Multi-Task Logistic Regression (MTLR).
+A comprehensive deep learning framework for survival analysis. This package implements state-of-the-art survival analysis models including DeepSurv, DeepHit, and Neural Multi-Task Logistic Regression (MTLR).
 
 ## Features
 
