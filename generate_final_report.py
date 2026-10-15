@@ -209,8 +209,6 @@ The synthetic survival data demonstrates:
 - Effective risk stratification models
 - Clinical relevance of key prognostic factors
 - Robust analytical methodology
-
-*Generated on {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
 
     with open("reports/comprehensive_survival_report.md", "w", encoding="utf-8") as f:

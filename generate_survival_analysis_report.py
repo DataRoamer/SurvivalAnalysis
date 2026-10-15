@@ -57,8 +57,7 @@ def main():
         'n_features': len(df.columns) - 2,  # Exclude time and event columns
         'event_rate': df['vital_status'].mean(),
         'median_followup': df['survival_months'].median(),
-        'dataset_name': 'Real Data' if is_real_data else 'Synthetic Survival Data',
-        'date_generated': pd.Timestamp.now().strftime('%Y-%m-%d')
+        'dataset_name': 'Real Data' if is_real_data else 'Synthetic Survival Data'
     }
 
     print(f"Dataset created: {dataset_info['n_samples']} patients, {dataset_info['n_features']} features")

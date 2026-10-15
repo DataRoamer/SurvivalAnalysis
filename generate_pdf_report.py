@@ -14,7 +14,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -233,11 +232,10 @@ class PDFSurvivalReporter:
                            title="Deep Learning Survival Analysis Report"):
         """Generate comprehensive PDF report."""
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_path = self.output_dir / f"survival_analysis_report_{timestamp}.pdf"
+        pdf_path = self.output_dir / "survival_analysis_report.pdf"
 
         # Create document
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, topMargin=1*inch)
+        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, topMargin=1*inch, invariant=True)
         story = []
         styles = getSampleStyleSheet()
 
@@ -261,8 +259,6 @@ class PDFSurvivalReporter:
 
         # Title page
         story.append(Paragraph(title, title_style))
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
-                              styles['Normal']))
         story.append(Spacer(1, 30))
 
         # Executive Summary

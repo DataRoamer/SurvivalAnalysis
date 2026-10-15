@@ -6,7 +6,6 @@ import sys
 import os
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
 
 # Add the src directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -111,7 +110,6 @@ def generate_executive_summary():
 
     print(f"\nPROJECT COMPLETE!")
     print("="*50)
-    print(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     generate_executive_summary()

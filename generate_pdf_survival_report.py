@@ -12,7 +12,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -245,7 +244,7 @@ class PDFSurvivalReporter:
 
         # Setup PDF document
         pdf_path = self.output_dir / "Survival_Analysis_Report.pdf"
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4,
+        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, invariant=True,
                               rightMargin=72, leftMargin=72,
                               topMargin=72, bottomMargin=18)
 
@@ -255,9 +254,6 @@ class PDFSurvivalReporter:
         # Title page
         story.append(Paragraph("Comprehensive Survival Analysis Report", self.styles['CustomTitle']))
         story.append(Spacer(1, 20))
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}",
-                              self.styles['Normal']))
-        story.append(Spacer(1, 10))
         story.append(Paragraph("Cancer Survival Data Analysis", self.styles['Heading2']))
         story.append(PageBreak())
 

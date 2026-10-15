@@ -362,8 +362,7 @@ def main():
         'test_samples': len(X_test),
         'feature_names': preprocessor.feature_names,
         'categorical_features': len(preprocessor.categorical_cols),
-        'numerical_features': len(preprocessor.numerical_cols),
-        'date_generated': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+        'numerical_features': len(preprocessor.numerical_cols)
     }
 
     # Prepare model results info

@@ -74,5 +74,3 @@ The synthetic survival data demonstrates:
 - Effective risk stratification models
 - Clinical relevance of key prognostic factors
 - Robust analytical methodology
-
-*Generated on 2026-10-15 15:40:34*

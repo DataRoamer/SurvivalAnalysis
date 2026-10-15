@@ -10,7 +10,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -244,11 +243,10 @@ class ProjectSummaryReporter:
 
     def generate_project_summary_pdf(self, title="Deep Learning Survival Analysis Project Summary"):
         """Generate comprehensive project summary PDF."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_path = self.output_dir / f"project_summary_{timestamp}.pdf"
+        pdf_path = self.output_dir / "project_summary.pdf"
 
         # Create document
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, topMargin=1*inch)
+        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, topMargin=1*inch, invariant=True)
         story = []
         styles = getSampleStyleSheet()
 
@@ -287,7 +285,6 @@ class ProjectSummaryReporter:
         story.append(Paragraph(title, title_style))
         story.append(Paragraph("A Comprehensive Framework for Cancer Survival Prediction", styles['Heading3']))
         story.append(Spacer(1, 20))
-        story.append(Paragraph(f"Report Generated: {datetime.now().strftime('%B %d, %Y')}", styles['Normal']))
         story.append(Paragraph("Author: DataRoamer", styles['Normal']))
         story.append(Spacer(1, 40))
 

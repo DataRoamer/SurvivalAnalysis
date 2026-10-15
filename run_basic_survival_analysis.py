@@ -242,8 +242,6 @@ def generate_summary_report(df, stage_results):
 - **Completeness**: High data completeness across key variables
 - **Follow-up**: Adequate follow-up time for survival analysis
 - **Sample Size**: Sufficient sample size for statistical analysis
-
-*Report generated on {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}*
 """
 
     # Save report

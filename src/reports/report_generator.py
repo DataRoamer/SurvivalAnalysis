@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from datetime import datetime
 import json
 from typing import Dict, List, Optional, Any, Tuple
 import warnings
@@ -77,8 +76,6 @@ class SurvivalAnalysisReporter:
         Returns:
             Dictionary with paths to generated reports
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         # Generate all visualizations first
         figures = self._generate_all_figures(
             times_true, events_true, test_predictions, feature_names
@@ -90,7 +87,7 @@ class SurvivalAnalysisReporter:
         # 1. HTML Report
         html_path = self._generate_html_report(
             dataset_info, model_results, test_predictions,
-            times_true, events_true, figures, report_title, timestamp
+            times_true, events_true, figures, report_title
         )
         reports['html'] = str(html_path)
 
@@ -98,20 +95,20 @@ class SurvivalAnalysisReporter:
         if REPORTLAB_AVAILABLE:
             pdf_path = self._generate_pdf_report(
                 dataset_info, model_results, test_predictions,
-                times_true, events_true, figures, report_title, timestamp
+                times_true, events_true, figures, report_title
             )
             reports['pdf'] = str(pdf_path)
 
         # 3. Excel Summary
         excel_path = self._generate_excel_summary(
             dataset_info, model_results, test_predictions,
-            times_true, events_true, timestamp
+            times_true, events_true
         )
         reports['excel'] = str(excel_path)
 
         # 4. JSON Summary
         json_path = self._generate_json_summary(
-            dataset_info, model_results, test_predictions, timestamp
+            dataset_info, model_results, test_predictions
         )
         reports['json'] = str(json_path)
 
@@ -192,8 +189,7 @@ class SurvivalAnalysisReporter:
                             times_true: np.ndarray,
                             events_true: np.ndarray,
                             figures: Dict[str, str],
-                            title: str,
-                            timestamp: str) -> Path:
+                            title: str) -> Path:
         """Generate HTML report."""
 
         # Compute detailed metrics
@@ -297,16 +293,11 @@ class SurvivalAnalysisReporter:
             overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }}
-        .timestamp {{
-            color: #666;
-            font-size: 0.9em;
-        }}
     </style>
 </head>
 <body>
     <div class="header">
         <h1>{title}</h1>
-        <p class="timestamp">Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
     </div>
 
     <div class="section">
@@ -477,7 +468,7 @@ class SurvivalAnalysisReporter:
         """
 
         # Save HTML file
-        html_path = self.output_dir / f"survival_analysis_report_{timestamp}.html"
+        html_path = self.output_dir / "survival_analysis_report.html"
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
@@ -490,12 +481,11 @@ class SurvivalAnalysisReporter:
                            times_true: np.ndarray,
                            events_true: np.ndarray,
                            figures: Dict[str, str],
-                           title: str,
-                           timestamp: str) -> Path:
+                           title: str) -> Path:
         """Generate PDF report using ReportLab."""
 
-        pdf_path = self.output_dir / f"survival_analysis_report_{timestamp}.pdf"
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4)
+        pdf_path = self.output_dir / "survival_analysis_report.pdf"
+        doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, invariant=True)
         story = []
         styles = getSampleStyleSheet()
 
@@ -509,7 +499,6 @@ class SurvivalAnalysisReporter:
             textColor=colors.darkblue
         )
         story.append(Paragraph(title, title_style))
-        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", styles['Normal']))
         story.append(Spacer(1, 20))
 
         # Dataset Overview
@@ -585,11 +574,10 @@ class SurvivalAnalysisReporter:
                               model_results: Dict[str, Any],
                               predictions: Dict[str, Any],
                               times_true: np.ndarray,
-                              events_true: np.ndarray,
-                              timestamp: str) -> Path:
+                              events_true: np.ndarray) -> Path:
         """Generate Excel summary report."""
 
-        excel_path = self.output_dir / f"survival_analysis_summary_{timestamp}.xlsx"
+        excel_path = self.output_dir / "survival_analysis_summary.xlsx"
 
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             # Dataset summary
@@ -639,15 +627,13 @@ class SurvivalAnalysisReporter:
     def _generate_json_summary(self,
                              dataset_info: Dict[str, Any],
                              model_results: Dict[str, Any],
-                             predictions: Dict[str, Any],
-                             timestamp: str) -> Path:
+                             predictions: Dict[str, Any]) -> Path:
         """Generate JSON summary report."""
 
-        json_path = self.output_dir / f"survival_analysis_summary_{timestamp}.json"
+        json_path = self.output_dir / "survival_analysis_summary.json"
 
         # Convert numpy arrays to lists for JSON serialization
         json_data = {
-            'timestamp': timestamp,
             'dataset_info': dataset_info,
             'model_config': model_results.get('model_config', {}),
             'predictions': {
