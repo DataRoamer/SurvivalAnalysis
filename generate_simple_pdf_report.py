@@ -439,7 +439,7 @@ class SimplePDFReporter:
 
         # Footer
         footer_text = """
-        <i>This report was generated for demonstration purposes using synthetic data calibrated
+        <i>This demonstration report uses synthetic data calibrated
         to published cancer statistics.
         In clinical practice, all analyses should be validated with real patient data
         and interpreted by qualified medical professionals. Risk predictions should
